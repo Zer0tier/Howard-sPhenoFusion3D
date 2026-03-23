@@ -1,0 +1,33 @@
+# Virtual environment
+venv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Data - never commit datasets
+data/
+
+# Point cloud outputs
+*.ply
+*.pcd
+
+# Checkpoints and model weights
+checkpoints/
+*.pth
+*.pt
+
+# VS Code
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# Environment variables
+.env
