@@ -1,66 +1,35 @@
-# Checkpoints and model artifacts
-checkpoints/
-*.ckpt
-*.pt
-*.pth
-*.h5
-*.hdf5
-*.pkl
-*.pickle
-
-# Data and output
-data/
-!data/.gitkeep
-*.ply
-emergency_save.ply
-merge/
-pose/
-
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# Virtual environments
+# Virtual environment
 venv/
-.venv/
-env/
-.env/
 
-# IDE and editor
-.idea/
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Data - never commit datasets
+data/
+
+# Point cloud outputs
+*.ply
+*.pcd
+
+# Checkpoints and model weights
+checkpoints/
+*.pth
+*.pt
+
+# VS Code
 .vscode/
-*.swp
-*.swo
-*~
 
-# Jupyter
-.ipynb_checkpoints/
-*.ipynb_checkpoints
-
-# OS
+# OS files
 .DS_Store
 Thumbs.db
 
-# Logs and temp
-*.log
-*.tmp
-temp/
-tmp/
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# Environment variables
+.env
+
+notes.txt
