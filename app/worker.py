@@ -8,13 +8,30 @@ class ProcessingWorker(QThread):
     finished   = pyqtSignal(object, list, list)
     error      = pyqtSignal(str)
 
-    def __init__(self, pairs, K, dist, depth_scale=1000.0, save_path=None):
+    def __init__(
+        self,
+        pairs,
+        K,
+        dist,
+        depth_scale=1000.0,
+        save_path=None,
+        save_every_n_frames=0,
+        emit_pcd_every_n_frames=1,
+        icp_max_points=60000,
+        fitness_threshold=1e-6,
+        voxel_size=0.005
+    ):
         super().__init__()
         self.pairs       = pairs
         self.K           = K
         self.dist        = dist
         self.depth_scale = depth_scale
         self.save_path   = save_path
+        self.save_every_n_frames = save_every_n_frames
+        self.emit_pcd_every_n_frames = emit_pcd_every_n_frames
+        self.icp_max_points = icp_max_points
+        self.fitness_threshold = fitness_threshold
+        self.voxel_size = voxel_size
         self._reconstructor = None
 
     def run(self):
@@ -25,6 +42,11 @@ class ProcessingWorker(QThread):
                 dist=self.dist,
                 depth_scale=self.depth_scale,
                 save_path=self.save_path,
+                save_every_n_frames=self.save_every_n_frames,
+                emit_pcd_every_n_frames=self.emit_pcd_every_n_frames,
+                icp_max_points=self.icp_max_points,
+                fitness_threshold=self.fitness_threshold,
+                voxel_size=self.voxel_size,
                 on_frame=self._on_frame
             )
             final_pcd, succeed, fail = self._reconstructor.run()

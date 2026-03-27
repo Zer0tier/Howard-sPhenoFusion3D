@@ -2,6 +2,36 @@ import numpy as np
 import cv2
 import open3d as o3d
 
+_INTRINSIC_CACHE = {}
+_UNDISTORT_MAP_CACHE = {}
+
+
+def _get_intrinsic(width, height, fx, fy, cx, cy):
+    key = (int(width), int(height), float(fx), float(fy), float(cx), float(cy))
+    intrinsic = _INTRINSIC_CACHE.get(key)
+    if intrinsic is None:
+        intrinsic = o3d.camera.PinholeCameraIntrinsic(
+            width=width, height=height, fx=fx, fy=fy, cx=cx, cy=cy
+        )
+        _INTRINSIC_CACHE[key] = intrinsic
+    return intrinsic
+
+
+def _get_undistort_maps(width, height, K, dist_arr):
+    key = (
+        int(width), int(height),
+        tuple(np.asarray(K, dtype=np.float64).reshape(-1).tolist()),
+        tuple(np.asarray(dist_arr, dtype=np.float64).reshape(-1).tolist()),
+    )
+    cached = _UNDISTORT_MAP_CACHE.get(key)
+    if cached is None:
+        map1, map2 = cv2.initUndistortRectifyMap(
+            K, dist_arr, None, K, (width, height), cv2.CV_32FC1
+        )
+        cached = (map1, map2)
+        _UNDISTORT_MAP_CACHE[key] = cached
+    return cached
+
 
 def rgbd2pcd(color_img, depth_img, K, dist=None, bbox=None, depth_scale=1000.0, depth_trunc=3.0):
     """
@@ -25,8 +55,9 @@ def rgbd2pcd(color_img, depth_img, K, dist=None, bbox=None, depth_scale=1000.0, 
     # Undistort if distortion coefficients provided and non-zero
     if dist is not None and any(d != 0.0 for d in dist):
         dist_arr = np.array(dist, dtype=np.float64)
-        color_img = cv2.undistort(color_img, K, dist_arr)
-        depth_img = cv2.undistort(depth_img, K, dist_arr)
+        map1, map2 = _get_undistort_maps(w, h, K, dist_arr)
+        color_img = cv2.remap(color_img, map1, map2, interpolation=cv2.INTER_LINEAR)
+        depth_img = cv2.remap(depth_img, map1, map2, interpolation=cv2.INTER_NEAREST)
 
     # Optional bbox crop (applied before projection)
     if bbox is not None:
@@ -67,10 +98,7 @@ def rgbd2pcd(color_img, depth_img, K, dist=None, bbox=None, depth_scale=1000.0, 
     cx = float(K[0, 2])
     cy = float(K[1, 2])
 
-    intrinsic = o3d.camera.PinholeCameraIntrinsic(
-        width=w, height=h,
-        fx=fx, fy=fy, cx=cx, cy=cy
-    )
+    intrinsic = _get_intrinsic(w, h, fx, fy, cx, cy)
 
     # Project to point cloud
     pcd = o3d.geometry.PointCloud.create_from_rgbd_image(rgbd, intrinsic)

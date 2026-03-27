@@ -1,5 +1,4 @@
 import os
-import copy
 import numpy as np
 import cv2
 import open3d as o3d
@@ -31,6 +30,10 @@ class Reconstructor:
         depth_trunc=3.0,
         voxel_size=0.005,
         save_path=None,
+        save_every_n_frames=0,
+        emit_pcd_every_n_frames=1,
+        icp_max_points=60000,
+        fitness_threshold=1e-6,
         on_frame=None,
         on_complete=None
     ):
@@ -44,6 +47,10 @@ class Reconstructor:
             depth_trunc  : discard depth beyond this many metres
             voxel_size   : voxel size for downsampling and ICP radius
             save_path    : directory to write intermediate PLY files, or None
+            save_every_n_frames : 0 disables live saves, otherwise save every N successful frames
+            emit_pcd_every_n_frames: include merged point cloud in callback every N frames
+            icp_max_points: cap points passed into ICP for speed
+            fitness_threshold: minimum fitness to accept ICP alignment
             on_frame     : callback(frame_idx, total, merged_pcd, fitness, rmse, status)
             on_complete  : callback(final_pcd, succeed_list, fail_list)
         """
@@ -55,6 +62,10 @@ class Reconstructor:
         self.depth_trunc = depth_trunc
         self.voxel_size = voxel_size
         self.save_path = save_path
+        self.save_every_n_frames = max(0, int(save_every_n_frames))
+        self.emit_pcd_every_n_frames = max(1, int(emit_pcd_every_n_frames))
+        self.icp_max_points = max(1000, int(icp_max_points))
+        self.fitness_threshold = max(0.0, float(fitness_threshold))
         self.on_frame = on_frame
         self.on_complete = on_complete
 
@@ -62,6 +73,7 @@ class Reconstructor:
         self.reference_pcd = None
         self.succeed_list = []
         self.fail_list = []
+        self._success_count = 0
 
         if save_path and not os.path.exists(save_path):
             os.makedirs(save_path, exist_ok=True)
@@ -79,6 +91,7 @@ class Reconstructor:
         self._stop_flag = False
         self.succeed_list = []
         self.fail_list = []
+        self._success_count = 0
 
         total = len(self.pairs)
         last_transform = np.eye(4)
@@ -130,16 +143,19 @@ class Reconstructor:
             # --- First frame: set as reference and target ---
             if i == 0:
                 target = source
-                self.reference_pcd = copy.deepcopy(source)
+                self.reference_pcd = o3d.geometry.PointCloud(source)
                 self.succeed_list.append({'frame': i, 'fitness': 1.0, 'rmse': 0.0})
+                self._success_count += 1
                 self._fire_on_frame(i, total, self.reference_pcd, 1.0, 0.0, 'OK')
                 self._save_intermediate()
                 continue
 
             # --- ICP registration against previous frame ---
             try:
+                source_icp = self._subsample_for_icp(source)
+                target_icp = self._subsample_for_icp(target)
                 _, transformation, fitness, rmse = color_icp(
-                    source, target, voxel_size=self.voxel_size
+                    source_icp, target_icp, voxel_size=self.voxel_size
                 )
             except Exception as e:
                 print(f'[reconstructor] Frame {i} ICP failed: {e}')
@@ -147,15 +163,16 @@ class Reconstructor:
                 self._fire_on_frame(i, total, self.reference_pcd, 0.0, 0.0, 'FAILED')
                 continue
 
-            if fitness > 0 or i < 3:
+            if fitness > self.fitness_threshold or i < 3:
                 # Accumulate into reference
                 last_transform = np.dot(last_transform, transformation)
-                frame_pcd = copy.deepcopy(source)
+                frame_pcd = o3d.geometry.PointCloud(source)
                 frame_pcd.transform(last_transform)
                 self.reference_pcd += frame_pcd
                 target = source
 
                 self.succeed_list.append({'frame': i, 'fitness': fitness, 'rmse': rmse})
+                self._success_count += 1
                 self._fire_on_frame(i, total, self.reference_pcd, fitness, rmse, 'OK')
                 self._save_intermediate()
 
@@ -178,9 +195,16 @@ class Reconstructor:
 
     def _fire_on_frame(self, frame_idx, total, pcd, fitness, rmse, status):
         if self.on_frame:
-            self.on_frame(frame_idx, total, pcd, fitness, rmse, status)
+            emit_pcd = pcd
+            if (frame_idx % self.emit_pcd_every_n_frames) != 0 and frame_idx != (total - 1):
+                emit_pcd = None
+            self.on_frame(frame_idx, total, emit_pcd, fitness, rmse, status)
 
     def _save_intermediate(self):
+        if self.save_every_n_frames == 0:
+            return
+        if (self._success_count % self.save_every_n_frames) != 0:
+            return
         if self.save_path and self.reference_pcd and not self.reference_pcd.is_empty():
             out = os.path.join(self.save_path, 'merge_pcd_live.ply')
             o3d.io.write_point_cloud(out, self.reference_pcd)
@@ -190,3 +214,12 @@ class Reconstructor:
             out = os.path.join(self.save_path or '.', 'emergency_save.ply')
             o3d.io.write_point_cloud(out, self.reference_pcd)
             print(f'[reconstructor] Emergency save written to {out}')
+
+    def _subsample_for_icp(self, pcd):
+        if pcd is None or pcd.is_empty():
+            return pcd
+        n_points = len(pcd.points)
+        if n_points <= self.icp_max_points:
+            return pcd
+        ratio = self.icp_max_points / float(n_points)
+        return pcd.random_down_sample(ratio)

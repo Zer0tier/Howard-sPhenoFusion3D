@@ -1,4 +1,5 @@
 import os
+import time
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 
 from file_io.loader   import load_image_pairs, load_intrinsics, get_default_intrinsics
@@ -22,9 +23,11 @@ class Controller(QObject):
         self.all_metrics = []
         self.n_success = 0
         self.n_fail    = 0
+        self._viewer_update_stride = 3
+        self._last_status_ts = 0.0
 
-    @pyqtSlot(str, str, str, int)
-    def on_run_clicked(self, rgb_dir, depth_dir, intrinsics_path, step_size):
+    @pyqtSlot(str, str, str, int, str)
+    def on_run_clicked(self, rgb_dir, depth_dir, intrinsics_path, step_size, profile='balanced'):
         self.n_success   = 0
         self.n_fail      = 0
         self.all_metrics = []
@@ -36,29 +39,45 @@ class Controller(QObject):
         except Exception as e:
             self.error_occurred.emit(f'Failed to load images:\n{e}')
             return
+        if not pairs:
+            self.error_occurred.emit('No RGB-D image pairs were found.')
+            return
 
         # Load intrinsics
         intr = load_intrinsics(intrinsics_path) if intrinsics_path else None
         if intr:
             K, dist, _, _ = intr
+            self.status_changed.emit('Loaded intrinsics from file.')
         else:
             K, dist = get_default_intrinsics()
+            self.status_changed.emit('Intrinsics file missing/invalid. Using defaults.')
 
-        self.status_changed.emit(f'Starting reconstruction: {len(pairs)} frames...')
+        self.status_changed.emit(
+            f'Starting reconstruction: {len(pairs)} frames (step={step_size}, profile={profile}).'
+        )
 
         # Detect depth scale from path hint
-        depth_scale = 5000.0 if 'icl' in rgb_dir.lower() else 1000.0
+        depth_scale = self._infer_depth_scale(rgb_dir, depth_dir)
+        perf = self._profile_settings(profile, step_size)
+        self._viewer_update_stride = perf['viewer_stride']
 
         self.worker = ProcessingWorker(
             pairs=pairs, K=K, dist=dist,
             depth_scale=depth_scale,
-            save_path=os.path.join(os.path.dirname(rgb_dir), 'output')
+            save_path=os.path.join(os.path.dirname(rgb_dir), 'output'),
+            save_every_n_frames=perf['save_every_n_frames'],
+            emit_pcd_every_n_frames=self._viewer_update_stride,
+            icp_max_points=perf['icp_max_points'],
+            fitness_threshold=perf['fitness_threshold'],
+            voxel_size=perf['voxel_size'],
         )
         self.worker.frame_done.connect(self._on_frame)
         self.worker.finished.connect(self._on_finished)
         self.worker.error.connect(self.error_occurred)
         self.worker.start()
+        self.viewer.close()
         self.viewer.start()
+        self._last_status_ts = 0.0
 
     @pyqtSlot()
     def on_stop_clicked(self):
@@ -73,9 +92,16 @@ class Controller(QObject):
         else:
             self.n_fail += 1
         self.all_metrics.append({'frame': idx, 'status': status, 'fitness': fitness, 'rmse': rmse})
-        self.viewer.update(pcd)
+        if status == 'OK' and pcd is not None:
+            self.viewer.update(pcd)
         self.frame_processed.emit(idx, total, pcd, fitness, rmse, status)
-        self.status_changed.emit(f'Frame {idx + 1}/{total} | fitness={fitness:.4f}')
+        now = time.time()
+        if (now - self._last_status_ts) > 0.15 or idx == total - 1:
+            self.status_changed.emit(
+                f'Frame {idx + 1}/{total} | ok={self.n_success} fail={self.n_fail} | '
+                f'fitness={fitness:.4f} rmse={rmse:.5f}'
+            )
+            self._last_status_ts = now
 
     @pyqtSlot(object, list, list)
     def _on_finished(self, final_pcd, succeed, fail):
@@ -85,6 +111,38 @@ class Controller(QObject):
             f'Use File menu to export.'
         )
         self.reconstruction_complete.emit(final_pcd, succeed, fail)
+
+    def _infer_depth_scale(self, rgb_dir, depth_dir):
+        joined = f'{rgb_dir} {depth_dir}'.lower()
+        if any(tag in joined for tag in ('icl', 'nuim', 'tum', 'freiburg')):
+            return 1.0
+        return 1000.0
+
+    def _profile_settings(self, profile, step_size):
+        profile = (profile or 'balanced').lower()
+        if profile == 'fast':
+            return {
+                'viewer_stride': 5,
+                'icp_max_points': 25000 if step_size <= 2 else 18000,
+                'fitness_threshold': 1e-5,
+                'save_every_n_frames': 0,
+                'voxel_size': 0.008,
+            }
+        if profile == 'quality':
+            return {
+                'viewer_stride': 1,
+                'icp_max_points': 90000 if step_size <= 2 else 70000,
+                'fitness_threshold': 1e-6,
+                'save_every_n_frames': 0,
+                'voxel_size': 0.004,
+            }
+        return {
+            'viewer_stride': 3,
+            'icp_max_points': 45000 if step_size <= 2 else 30000,
+            'fitness_threshold': 1e-6,
+            'save_every_n_frames': 0,
+            'voxel_size': 0.005,
+        }
 
     def export_ply(self, path):
         if self.final_pcd:

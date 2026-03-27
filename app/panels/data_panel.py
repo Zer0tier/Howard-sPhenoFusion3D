@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-    QPushButton, QLineEdit, QSpinBox, QFileDialog, QMessageBox
+    QPushButton, QLineEdit, QSpinBox, QFileDialog, QMessageBox, QComboBox
 )
 from PyQt5.QtCore import pyqtSignal, Qt
 import os
@@ -8,7 +8,7 @@ import os
 
 class DataPanel(QWidget):
 
-    run_requested  = pyqtSignal(str, str, str, int)  # rgb_dir, depth_dir, intrinsics, step
+    run_requested  = pyqtSignal(str, str, str, int, str)  # rgb_dir, depth_dir, intrinsics, step, profile
     stop_requested = pyqtSignal()
 
     def __init__(self):
@@ -32,12 +32,28 @@ class DataPanel(QWidget):
         step_row = QHBoxLayout()
         step_row.addWidget(QLabel('Step Size:'))
         self.step_spin = QSpinBox()
-        self.step_spin.setRange(1, 20)
+        self.step_spin.setRange(1, 10)
         self.step_spin.setValue(2)
         self.step_spin.setToolTip('Use every Nth frame (2 = every other frame)')
         step_row.addWidget(self.step_spin)
         step_row.addStretch()
         layout.addLayout(step_row)
+
+        # Performance profile
+        profile_row = QHBoxLayout()
+        profile_row.addWidget(QLabel('Performance Profile:'))
+        self.profile_combo = QComboBox()
+        self.profile_combo.addItem('Balanced', 'balanced')
+        self.profile_combo.addItem('Fast', 'fast')
+        self.profile_combo.addItem('Quality', 'quality')
+        self.profile_combo.setToolTip(
+            'Fast: quickest scan, less detail\n'
+            'Balanced: recommended default\n'
+            'Quality: slower, denser and more stable alignment'
+        )
+        profile_row.addWidget(self.profile_combo)
+        profile_row.addStretch()
+        layout.addLayout(profile_row)
 
         # Run / Stop buttons
         btn_row = QHBoxLayout()
@@ -119,16 +135,28 @@ class DataPanel(QWidget):
         depth_dir = self.depth_edit.text()
         intr_path = self.intr_edit.text()
         step      = self.step_spin.value()
+        profile   = self.profile_combo.currentData()
 
         # Quick count check
         import glob
         rgb_count = len(glob.glob(os.path.join(rgb_dir, '*.png')))
+        depth_count = len(glob.glob(os.path.join(depth_dir, '*.png')))
         if rgb_count == 0:
             QMessageBox.warning(self, 'No Images', f'No PNG files found in:\n{rgb_dir}')
             return
+        if depth_count == 0:
+            QMessageBox.warning(self, 'No Images', f'No PNG files found in:\n{depth_dir}')
+            return
+        if rgb_count != depth_count:
+            QMessageBox.warning(
+                self,
+                'Mismatched Counts',
+                f'RGB count ({rgb_count}) does not match depth count ({depth_count}).'
+            )
+            return
 
         self.set_running(True)
-        self.run_requested.emit(rgb_dir, depth_dir, intr_path, step)
+        self.run_requested.emit(rgb_dir, depth_dir, intr_path, step, profile)
 
     def set_running(self, running: bool):
         self.run_btn.setEnabled(not running)
