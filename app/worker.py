@@ -8,12 +8,14 @@ class ProcessingWorker(QThread):
     finished   = pyqtSignal(object, list, list)
     error      = pyqtSignal(str)
 
-    def __init__(self, pairs, K, dist, depth_scale=1000.0, save_path=None):
+    def __init__(self, pairs, K, dist, depth_scale=1000.0, depth_trunc=3.2, voxel_size=0.005, save_path=None):
         super().__init__()
         self.pairs       = pairs
         self.K           = K
         self.dist        = dist
         self.depth_scale = depth_scale
+        self.depth_trunc = depth_trunc
+        self.voxel_size  = voxel_size
         self.save_path   = save_path
         self._reconstructor = None
 
@@ -24,6 +26,8 @@ class ProcessingWorker(QThread):
                 K=self.K,
                 dist=self.dist,
                 depth_scale=self.depth_scale,
+                depth_trunc=self.depth_trunc,
+                voxel_size=self.voxel_size,
                 save_path=self.save_path,
                 on_frame=self._on_frame
             )

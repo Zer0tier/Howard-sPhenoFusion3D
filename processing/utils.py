@@ -2,7 +2,7 @@ import numpy as np
 import open3d as o3d
 
 
-def clean_pcd(pcd, nb_neighbors=20, std_ratio=2.0, voxel_size=0.005):
+def clean_pcd(pcd, nb_neighbors=30, std_ratio=1.5, voxel_size=0.005):
     """
     Downsample and remove statistical outliers from a point cloud.
     Returns cleaned PointCloud. Handles empty input gracefully.

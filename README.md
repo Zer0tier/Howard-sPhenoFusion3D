@@ -29,6 +29,17 @@ pip install -r requirements.txt
 
 Do not commit large datasets or generated point clouds; see `.gitignore` (`data/`, `*.ply`, `*.pcd`, etc.).
 
+## Organizing `data/main` (ICL-style layout)
+
+Team RGB-D drops often use **`rgb_*.png`** and **`depth_*.png`** in a single folder per capture (e.g. `data/main/<sequence>/`). To mirror **`data/icl_nuim/`** (`rgb/0.png`, `depth/0.png`, and **`kdc_intrinsics.txt`** at the sequence root), activate the venv (see above) and run from the repo root:
+
+```bash
+python scripts/reorganize_data_main.py --dry-run
+python scripts/reorganize_data_main.py
+```
+
+Use **`--move`** instead of copy if you want to remove the flat `rgb_*` / `depth_*` files after moving them into `rgb/` and `depth/`. For one sequence, separate RGB/depth folders, or **`camera_N`** layouts, see **`python scripts/reorganize_to_icl_layout.py --help`**.
+
 ## Project layout
 
 | Path | Role |
@@ -42,7 +53,9 @@ Do not commit large datasets or generated point clouds; see `.gitignore` (`data/
 | `tests/` | Unit tests (`test_loader`, `test_rgbd`, `test_icp`) |
 | `tests/smoke_reconstructor.py` | End-to-end smoke script (synthetic frames → merged cloud) |
 | `stakeholder_reference/` | Reference scripts from stakeholders (e.g. `3D_recons.py`); may expect extra deps such as PyTorch |
-| `data/` | Local RGB-D sequences (gitignored; keep datasets here, e.g. `data/icl_nuim/`) |
+| `data/` | Local RGB-D sequences (gitignored; keep datasets here, e.g. `data/icl_nuim/`, `data/main/`) |
+| `scripts/reorganize_to_icl_layout.py` | CLI: convert stakeholder flat `rgb_*`/`depth_*` layout → `rgb/N.png`, `depth/N.png` + `kdc_intrinsics.txt` |
+| `scripts/reorganize_data_main.py` | Wrapper: batch that for each subfolder of `data/main` |
 | `app/`, `main.py`, `visualiser/` | Reserved for a future PyQt-style UI; entry points may still be empty stubs |
 
 ## Data conventions

@@ -47,11 +47,17 @@ class Controller(QObject):
         self.status_changed.emit(f'Starting reconstruction: {len(pairs)} frames...')
 
         # Detect depth scale from path hint
-        depth_scale = 5000.0 if 'icl' in rgb_dir.lower() else 1000.0
+        # depth_scale = 5000.0 if 'icl' in rgb_dir.lower() else 1000.0
+        is_icl = 'icl' in rgb_dir.lower()
+        depth_scale  = 5000.0 if is_icl else 1000.0
+        depth_trunc  = 4.0    if is_icl else 3.2    # cuts floor at 3.2m, plant is at 2.0–3.0m
+        voxel_size   = 0.02   if is_icl else 0.005  # 5mm voxels for fine plant detail
 
         self.worker = ProcessingWorker(
             pairs=pairs, K=K, dist=dist,
             depth_scale=depth_scale,
+            depth_trunc=depth_trunc,
+            voxel_size=voxel_size,
             save_path=os.path.join(os.path.dirname(rgb_dir), 'output')
         )
         self.worker.frame_done.connect(self._on_frame)

@@ -48,6 +48,25 @@ def rgbd2pcd(color_img, depth_img, K, dist=None, bbox=None, depth_scale=1000.0, 
     if depth_img.dtype != np.uint16:
         depth_img = depth_img.astype(np.uint16)
 
+    # Mask invalid near-field and far-field RealSense readings
+    # Near: <1500mm = machine body / sensor noise (dead zone 0.5-2.0m confirms)
+    # Far:  >3200mm = floor and sensor overflow (RealSense D405 max ~5m, but noise starts at 3.5m+)
+    depth_min_mm = int(1500)   # nothing real between 0.5m–2.0m
+    depth_max_mm = int(depth_trunc * depth_scale)  # e.g. 3.2m * 1000 = 3200
+    invalid_mask = (depth_img < depth_min_mm) | (depth_img > depth_max_mm)
+    depth_img = depth_img.copy()
+    depth_img[invalid_mask] = 0
+
+    # Fill holes caused by leaf IR scatter + the masking above
+    depth_float = depth_img.astype(np.float32)
+    zero_mask = (depth_img == 0).astype(np.uint8)
+    if zero_mask.sum() > 0:
+        depth_float = cv2.inpaint(
+            depth_float, zero_mask,
+            inpaintRadius=5, flags=cv2.INPAINT_NS
+        )
+        depth_img = depth_float.astype(np.uint16)
+
     # Create Open3D images
     o3d_color = o3d.geometry.Image(color_img)
     o3d_depth = o3d.geometry.Image(depth_img)
