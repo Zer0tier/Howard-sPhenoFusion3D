@@ -88,6 +88,71 @@ python tests/smoke_reconstructor.py
 
 Typical real-data usage: **`pairs = load_image_pairs(rgb_dir, depth_dir, step=1)`**, **`load_intrinsics(path)`** or defaults, then **`Reconstructor(pairs=..., K=..., dist=..., depth_scale=..., save_path=...).run()`**. You can slice **`pairs`** (e.g. Python list slicing) to run on a subset of frames.
 
+## Experimental intrinsics recovery tools
+
+The repo now includes a lightweight experiment track for intrinsic uncertainty studies (baseline runs, focal-length sweep, and candidate comparison).
+
+### 1) Baseline runs (T-01)
+
+Script: `experiments/baseline/run_baseline.py`
+
+Runs one or more focal-length baselines and writes:
+- `baseline/metrics.json`
+- `baseline/baseline_fx*.ply`
+
+Example:
+
+```bash
+python experiments/baseline/run_baseline.py \
+  --rgb-dir "data/main/test_plant_rs13_1/rgb" \
+  --depth-dir "data/main/test_plant_rs13_1/depth" \
+  --output-dir "baseline" \
+  --fx-values 1108 900
+```
+
+### 2) Focal-length sweep (T-02 helper)
+
+Script: `experiments/calibration/sweep_intrinsics.py`
+
+Sweeps candidate `fx` values, reconstructs a small frame subset per candidate, and records:
+- `experiments/calibration/outputs/intrinsics_sweep.csv`
+- `experiments/calibration/outputs/candidate_intrinsics.json`
+
+Example:
+
+```bash
+python experiments/calibration/sweep_intrinsics.py \
+  --rgb-dir "data/main/test_plant_rs13_1/rgb" \
+  --depth-dir "data/main/test_plant_rs13_1/depth" \
+  --frames 5
+```
+
+Optional:
+- `--save-best-ply` to run/save a full reconstruction for the selected winner.
+- `--fx-values "700,800,900,1000,1050,1108,1200"` to override defaults.
+
+### 3) Candidate intrinsics comparison (T-08)
+
+Script: `evaluation/compare_intrinsics.py`
+
+Compares multiple intrinsics JSON files on a fixed frame slice and writes:
+- `evaluation/comparison_results.csv`
+- `evaluation/comparison_results.json`
+- `evaluation/ply_outputs/*.ply`
+
+Example:
+
+```bash
+python evaluation/compare_intrinsics.py \
+  --rgb-dir "data/main/test_plant_rs13_1/rgb" \
+  --depth-dir "data/main/test_plant_rs13_1/depth" \
+  --frames 30 \
+  "data/main/test_plant_rs13_1/depth/kdc_intrinsics.txt" \
+  "data/main/test_plant_rs13_1/depth/kd_intrinsics.txt"
+```
+
+The script also prints a markdown-ready summary table to stdout for easy report copy/paste.
+
 ## Dependencies (summary)
 
 Declared in `requirements.txt`: Open3D, OpenCV, NumPy, natsort, tqdm, PyQt5, pyqtgraph, matplotlib, pytest. Optional acceleration paths (e.g. CuPy) are referenced in `processing/utils.py` but are not required for the core tests.
