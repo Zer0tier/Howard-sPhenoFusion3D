@@ -1,0 +1,427 @@
+{
+  "config": {
+    "rgb_dir": "data/main/test_plant_rs13_1/rgb",
+    "depth_dir": "data/main/test_plant_rs13_1/depth",
+    "frames": 30,
+    "step": 1,
+    "depth_scale": null,
+    "voxel_size": 0.005,
+    "icp_max_points": 45000
+  },
+  "results": [
+    {
+      "label": "kdc_intrinsics",
+      "intrinsics_path": "data/main/test_plant_rs13_1/depth/kdc_intrinsics.txt",
+      "mean_fitness": 0.8113532567049807,
+      "mean_rmse": 0.005849999253370811,
+      "success_rate": 1.0,
+      "success_frames": 30,
+      "failed_frames": 0,
+      "point_count": 4125283,
+      "plane_inlier_ratio": 0.09851857436204983,
+      "output_ply": "/mnt/c/COMP3500/PhenoFusion3DFork/Howard-sPhenoFusion3D/evaluation/ply_outputs/kdc_intrinsics.ply"
+    },
+    {
+      "label": "kd_intrinsics",
+      "intrinsics_path": "data/main/test_plant_rs13_1/depth/kd_intrinsics.txt",
+      "mean_fitness": 0.7581049808429118,
+      "mean_rmse": 0.0062684181548562385,
+      "success_rate": 1.0,
+      "success_frames": 30,
+      "failed_frames": 0,
+      "point_count": 5754516,
+      "plane_inlier_ratio": 0.09739359487400852,
+      "output_ply": "/mnt/c/COMP3500/PhenoFusion3DFork/Howard-sPhenoFusion3D/evaluation/ply_outputs/kd_intrinsics.ply"
+    }
+  ],
+  "details": [
+    {
+      "label": "kdc_intrinsics",
+      "intrinsics_source": "file",
+      "output_ply": "/mnt/c/COMP3500/PhenoFusion3DFork/Howard-sPhenoFusion3D/evaluation/ply_outputs/kdc_intrinsics.ply",
+      "mean_fitness": 0.8113532567049807,
+      "mean_rmse": 0.005849999253370811,
+      "success_frames": 30,
+      "failed_frames": 0,
+      "success_rate": 1.0,
+      "point_count": 4125283,
+      "plane_inlier_ratio": 0.09851857436204983,
+      "frame_metrics": [
+        {
+          "frame": 0,
+          "status": "OK",
+          "fitness": 1.0,
+          "rmse": 0.0
+        },
+        {
+          "frame": 1,
+          "status": "OK",
+          "fitness": 0.831,
+          "rmse": 0.005742916524917755
+        },
+        {
+          "frame": 2,
+          "status": "OK",
+          "fitness": 0.8169111111111111,
+          "rmse": 0.005800948960654022
+        },
+        {
+          "frame": 3,
+          "status": "OK",
+          "fitness": 0.7856,
+          "rmse": 0.0059764752386337675
+        },
+        {
+          "frame": 4,
+          "status": "OK",
+          "fitness": 0.7890222222222222,
+          "rmse": 0.006019837076640845
+        },
+        {
+          "frame": 5,
+          "status": "OK",
+          "fitness": 0.7888444444444445,
+          "rmse": 0.005961793818755653
+        },
+        {
+          "frame": 6,
+          "status": "OK",
+          "fitness": 0.7890444444444444,
+          "rmse": 0.005971459941461426
+        },
+        {
+          "frame": 7,
+          "status": "OK",
+          "fitness": 0.8173777777777778,
+          "rmse": 0.0058988538614161016
+        },
+        {
+          "frame": 8,
+          "status": "OK",
+          "fitness": 0.7867555555555555,
+          "rmse": 0.006011762574637059
+        },
+        {
+          "frame": 9,
+          "status": "OK",
+          "fitness": 0.7994888888888889,
+          "rmse": 0.00583974608340614
+        },
+        {
+          "frame": 10,
+          "status": "OK",
+          "fitness": 0.8010888888888889,
+          "rmse": 0.0058960783478797674
+        },
+        {
+          "frame": 11,
+          "status": "OK",
+          "fitness": 0.7987777777777778,
+          "rmse": 0.005867429787721482
+        },
+        {
+          "frame": 12,
+          "status": "OK",
+          "fitness": 0.8023777777777777,
+          "rmse": 0.005873487466448416
+        },
+        {
+          "frame": 13,
+          "status": "OK",
+          "fitness": 0.8044222222222223,
+          "rmse": 0.0058757732026588965
+        },
+        {
+          "frame": 14,
+          "status": "OK",
+          "fitness": 0.8110666666666667,
+          "rmse": 0.005793388424781438
+        },
+        {
+          "frame": 15,
+          "status": "OK",
+          "fitness": 0.8208888888888889,
+          "rmse": 0.005806457371937979
+        },
+        {
+          "frame": 16,
+          "status": "OK",
+          "fitness": 0.8202888888888888,
+          "rmse": 0.00576100294761511
+        },
+        {
+          "frame": 17,
+          "status": "OK",
+          "fitness": 0.8153333333333334,
+          "rmse": 0.005779955916812266
+        },
+        {
+          "frame": 18,
+          "status": "OK",
+          "fitness": 0.8207555555555556,
+          "rmse": 0.00582525579408873
+        },
+        {
+          "frame": 19,
+          "status": "OK",
+          "fitness": 0.8099555555555555,
+          "rmse": 0.005818995579652714
+        },
+        {
+          "frame": 20,
+          "status": "OK",
+          "fitness": 0.8223333333333334,
+          "rmse": 0.0057853778475672624
+        },
+        {
+          "frame": 21,
+          "status": "OK",
+          "fitness": 0.8182444444444444,
+          "rmse": 0.005790684519082118
+        },
+        {
+          "frame": 22,
+          "status": "OK",
+          "fitness": 0.8078888888888889,
+          "rmse": 0.005837371122424444
+        },
+        {
+          "frame": 23,
+          "status": "OK",
+          "fitness": 0.8323333333333334,
+          "rmse": 0.005770266814118236
+        },
+        {
+          "frame": 24,
+          "status": "OK",
+          "fitness": 0.8177555555555556,
+          "rmse": 0.0058102813769702
+        },
+        {
+          "frame": 25,
+          "status": "OK",
+          "fitness": 0.8194444444444444,
+          "rmse": 0.0058114987679491565
+        },
+        {
+          "frame": 26,
+          "status": "OK",
+          "fitness": 0.8263111111111111,
+          "rmse": 0.005832514440041091
+        },
+        {
+          "frame": 27,
+          "status": "OK",
+          "fitness": 0.8316222222222223,
+          "rmse": 0.005827282674385997
+        },
+        {
+          "frame": 28,
+          "status": "OK",
+          "fitness": 0.8154444444444444,
+          "rmse": 0.005842123202113844
+        },
+        {
+          "frame": 29,
+          "status": "OK",
+          "fitness": 0.8288666666666666,
+          "rmse": 0.005820958662981593
+        }
+      ]
+    },
+    {
+      "label": "kd_intrinsics",
+      "intrinsics_source": "file",
+      "output_ply": "/mnt/c/COMP3500/PhenoFusion3DFork/Howard-sPhenoFusion3D/evaluation/ply_outputs/kd_intrinsics.ply",
+      "mean_fitness": 0.7581049808429118,
+      "mean_rmse": 0.0062684181548562385,
+      "success_frames": 30,
+      "failed_frames": 0,
+      "success_rate": 1.0,
+      "point_count": 5754516,
+      "plane_inlier_ratio": 0.09739359487400852,
+      "frame_metrics": [
+        {
+          "frame": 0,
+          "status": "OK",
+          "fitness": 1.0,
+          "rmse": 0.0
+        },
+        {
+          "frame": 1,
+          "status": "OK",
+          "fitness": 0.7772888888888889,
+          "rmse": 0.006168945126469632
+        },
+        {
+          "frame": 2,
+          "status": "OK",
+          "fitness": 0.7620666666666667,
+          "rmse": 0.006227215053180915
+        },
+        {
+          "frame": 3,
+          "status": "OK",
+          "fitness": 0.7289333333333333,
+          "rmse": 0.006339033948436858
+        },
+        {
+          "frame": 4,
+          "status": "OK",
+          "fitness": 0.7365111111111111,
+          "rmse": 0.0063474194308944685
+        },
+        {
+          "frame": 5,
+          "status": "OK",
+          "fitness": 0.7427333333333334,
+          "rmse": 0.00635189554161401
+        },
+        {
+          "frame": 6,
+          "status": "OK",
+          "fitness": 0.7387777777777778,
+          "rmse": 0.0063784803462366615
+        },
+        {
+          "frame": 7,
+          "status": "OK",
+          "fitness": 0.7588888888888888,
+          "rmse": 0.006295262131822484
+        },
+        {
+          "frame": 8,
+          "status": "OK",
+          "fitness": 0.7367111111111111,
+          "rmse": 0.006383039436377546
+        },
+        {
+          "frame": 9,
+          "status": "OK",
+          "fitness": 0.7556666666666667,
+          "rmse": 0.006260239881153721
+        },
+        {
+          "frame": 10,
+          "status": "OK",
+          "fitness": 0.7532888888888889,
+          "rmse": 0.00628263363900082
+        },
+        {
+          "frame": 11,
+          "status": "OK",
+          "fitness": 0.7491777777777778,
+          "rmse": 0.006245546488201328
+        },
+        {
+          "frame": 12,
+          "status": "OK",
+          "fitness": 0.6988,
+          "rmse": 0.006481450438652465
+        },
+        {
+          "frame": 13,
+          "status": "OK",
+          "fitness": 0.7554888888888889,
+          "rmse": 0.006260650124879475
+        },
+        {
+          "frame": 14,
+          "status": "OK",
+          "fitness": 0.7579555555555556,
+          "rmse": 0.0062131057944271395
+        },
+        {
+          "frame": 15,
+          "status": "OK",
+          "fitness": 0.7698888888888888,
+          "rmse": 0.006196916255663306
+        },
+        {
+          "frame": 16,
+          "status": "OK",
+          "fitness": 0.7741111111111111,
+          "rmse": 0.006200362827987484
+        },
+        {
+          "frame": 17,
+          "status": "OK",
+          "fitness": 0.7621333333333333,
+          "rmse": 0.006241699263016589
+        },
+        {
+          "frame": 18,
+          "status": "OK",
+          "fitness": 0.7663111111111112,
+          "rmse": 0.006231655909301176
+        },
+        {
+          "frame": 19,
+          "status": "OK",
+          "fitness": 0.7672444444444444,
+          "rmse": 0.006209604775214612
+        },
+        {
+          "frame": 20,
+          "status": "OK",
+          "fitness": 0.7737555555555555,
+          "rmse": 0.006252179563325657
+        },
+        {
+          "frame": 21,
+          "status": "OK",
+          "fitness": 0.7591111111111111,
+          "rmse": 0.00628212340867461
+        },
+        {
+          "frame": 22,
+          "status": "OK",
+          "fitness": 0.7613111111111112,
+          "rmse": 0.006253776222606271
+        },
+        {
+          "frame": 23,
+          "status": "OK",
+          "fitness": 0.7796,
+          "rmse": 0.006202132209596182
+        },
+        {
+          "frame": 24,
+          "status": "OK",
+          "fitness": 0.7669111111111111,
+          "rmse": 0.006235328079054794
+        },
+        {
+          "frame": 25,
+          "status": "OK",
+          "fitness": 0.7685555555555555,
+          "rmse": 0.00624307931183874
+        },
+        {
+          "frame": 26,
+          "status": "OK",
+          "fitness": 0.7758444444444444,
+          "rmse": 0.006215230296883707
+        },
+        {
+          "frame": 27,
+          "status": "OK",
+          "fitness": 0.7778,
+          "rmse": 0.006242762080892001
+        },
+        {
+          "frame": 28,
+          "status": "OK",
+          "fitness": 0.7609333333333334,
+          "rmse": 0.00630376072317094
+        },
+        {
+          "frame": 29,
+          "status": "OK",
+          "fitness": 0.7692444444444444,
+          "rmse": 0.006238598182257341
+        }
+      ]
+    }
+  ]
+}

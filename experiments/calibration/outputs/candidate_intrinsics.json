@@ -1,0 +1,31 @@
+{
+  "K": [
+    [
+      700.0,
+      0.0,
+      320.0
+    ],
+    [
+      0.0,
+      700.0,
+      240.0
+    ],
+    [
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "dist": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+  ],
+  "width": 640,
+  "height": 480,
+  "selected_fx": 700.0,
+  "selection_rule": "max(plane_inlier_ratio, fitness, -rmse)",
+  "sweep_csv": "/mnt/c/COMP3500/PhenoFusion3DFork/Howard-sPhenoFusion3D/experiments/calibration/outputs/intrinsics_sweep.csv"
+}

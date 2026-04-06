@@ -1,0 +1,3 @@
+label,intrinsics_path,mean_fitness,mean_rmse,success_rate,success_frames,failed_frames,point_count,plane_inlier_ratio,output_ply
+kdc_intrinsics,data/main/test_plant_rs13_1/depth/kdc_intrinsics.txt,0.8113532567049807,0.005849999253370811,1.0,30,0,4125283,0.09851857436204983,/mnt/c/COMP3500/PhenoFusion3DFork/Howard-sPhenoFusion3D/evaluation/ply_outputs/kdc_intrinsics.ply
+kd_intrinsics,data/main/test_plant_rs13_1/depth/kd_intrinsics.txt,0.7581049808429118,0.0062684181548562385,1.0,30,0,5754516,0.09739359487400852,/mnt/c/COMP3500/PhenoFusion3DFork/Howard-sPhenoFusion3D/evaluation/ply_outputs/kd_intrinsics.ply
