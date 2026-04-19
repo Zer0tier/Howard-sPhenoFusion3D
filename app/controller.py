@@ -46,18 +46,46 @@ class Controller(QObject):
 
         self.status_changed.emit(f'Starting reconstruction: {len(pairs)} frames...')
 
-        # Detect depth scale from path hint
-        # depth_scale = 5000.0 if 'icl' in rgb_dir.lower() else 1000.0
         is_icl = 'icl' in rgb_dir.lower()
-        depth_scale  = 5000.0 if is_icl else 1000.0
-        depth_trunc  = 4.0    if is_icl else 3.2    # cuts floor at 3.2m, plant is at 2.0–3.0m
-        voxel_size   = 0.02   if is_icl else 0.005  # 5mm voxels for fine plant detail
+
+        # --- Depth / camera parameters ---
+        depth_scale = 5000.0 if is_icl else 1000.0
+        depth_trunc = 4.0    if is_icl else 4.0   # 4 m covers the full gantry scene
+        voxel_size  = 0.02   if is_icl else 0.005  # used for ICP radius and output downsampling
+
+        # --- ICP-mode parameters (only used when use_known_poses=False) ---
+        max_iter     = 30    if is_icl else 80
+        bbox         = None  if is_icl else None   # no crop -- let TSDF use full frame
+        erode        = True  if is_icl else False
+        inpaint      = True  if is_icl else False
+        depth_min_mm = 0     if is_icl else 0      # no near-clip; sparse data needs every pixel
+
+        # --- Known-pose / TSDF parameters ---
+        # use_known_poses=True skips ICP entirely and uses kinematic gantry poses.
+        # gantry_step_m is per-PAIR displacement (= per-frame step × sampling step).
+        # gantry_axis: 0=camera X (horizontal), 1=camera Y.
+        # Run calibrate_gantry.py to refine these values for your specific dataset.
+        use_known_poses = False if is_icl else True
+        gantry_axis     = 0                         # horizontal scan (most common)
+        per_frame_step  = 0.0 if is_icl else 0.00127  # ~1.27 mm/frame at 38mm/s, 30fps
+        # step_size comes from the UI; multiply here so Reconstructor gets per-pair displacement
+        gantry_step_m   = per_frame_step * step_size
+        tsdf_voxel_m    = 0.003   # 3 mm voxels (only active when use_known_poses=True)
 
         self.worker = ProcessingWorker(
             pairs=pairs, K=K, dist=dist,
             depth_scale=depth_scale,
             depth_trunc=depth_trunc,
             voxel_size=voxel_size,
+            max_iter=max_iter,
+            bbox=bbox,
+            gantry_step_m=gantry_step_m,
+            gantry_axis=gantry_axis,
+            depth_min_mm=depth_min_mm,
+            erode=erode,
+            inpaint=inpaint,
+            use_known_poses=use_known_poses,
+            tsdf_voxel_m=tsdf_voxel_m,
             save_path=os.path.join(os.path.dirname(rgb_dir), 'output')
         )
         self.worker.frame_done.connect(self._on_frame)

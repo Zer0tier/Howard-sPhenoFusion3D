@@ -8,16 +8,43 @@ class ProcessingWorker(QThread):
     finished   = pyqtSignal(object, list, list)
     error      = pyqtSignal(str)
 
-    def __init__(self, pairs, K, dist, depth_scale=1000.0, depth_trunc=3.2, voxel_size=0.005, save_path=None):
+    def __init__(
+        self,
+        pairs,
+        K,
+        dist,
+        depth_scale=1000.0,
+        depth_trunc=3.2,
+        voxel_size=0.005,
+        max_iter=50,
+        bbox=None,
+        gantry_step_m=0.0,
+        gantry_axis=0,
+        depth_min_mm=0,
+        erode=False,
+        inpaint=False,
+        use_known_poses=False,
+        tsdf_voxel_m=0.003,
+        save_path=None,
+    ):
         super().__init__()
-        self.pairs       = pairs
-        self.K           = K
-        self.dist        = dist
-        self.depth_scale = depth_scale
-        self.depth_trunc = depth_trunc
-        self.voxel_size  = voxel_size
-        self.save_path   = save_path
-        self._reconstructor = None
+        self.pairs           = pairs
+        self.K               = K
+        self.dist            = dist
+        self.depth_scale     = depth_scale
+        self.depth_trunc     = depth_trunc
+        self.voxel_size      = voxel_size
+        self.max_iter        = max_iter
+        self.bbox            = bbox
+        self.gantry_step_m   = gantry_step_m
+        self.gantry_axis     = gantry_axis
+        self.depth_min_mm    = depth_min_mm
+        self.erode           = erode
+        self.inpaint         = inpaint
+        self.use_known_poses = use_known_poses
+        self.tsdf_voxel_m    = tsdf_voxel_m
+        self.save_path       = save_path
+        self._reconstructor  = None
 
     def run(self):
         try:
@@ -28,8 +55,17 @@ class ProcessingWorker(QThread):
                 depth_scale=self.depth_scale,
                 depth_trunc=self.depth_trunc,
                 voxel_size=self.voxel_size,
+                max_iter=self.max_iter,
+                bbox=self.bbox,
+                gantry_step_m=self.gantry_step_m,
+                gantry_axis=self.gantry_axis,
+                depth_min_mm=self.depth_min_mm,
+                erode=self.erode,
+                inpaint=self.inpaint,
+                use_known_poses=self.use_known_poses,
+                tsdf_voxel_m=self.tsdf_voxel_m,
                 save_path=self.save_path,
-                on_frame=self._on_frame
+                on_frame=self._on_frame,
             )
             final_pcd, succeed, fail = self._reconstructor.run()
             self.finished.emit(final_pcd, succeed, fail)

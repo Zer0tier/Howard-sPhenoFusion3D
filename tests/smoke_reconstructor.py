@@ -11,7 +11,7 @@ tmpdir = tempfile.mkdtemp()
 pairs = []
 for i in range(10):
     rgb = np.random.randint(0, 255, (480, 640, 3), dtype=np.uint8)
-    depth = np.full((480, 640), 1000, dtype=np.uint16)   # flat plane at 1m
+    depth = np.full((480, 640), 2000, dtype=np.uint16)   # 2 m — within rgbd near/far mask window
     rgb_path   = os.path.join(tmpdir, f'rgb_{i:04d}.png')
     depth_path = os.path.join(tmpdir, f'depth_{i:04d}.png')
     cv2.imwrite(rgb_path, rgb)
