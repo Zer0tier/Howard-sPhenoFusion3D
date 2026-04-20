@@ -8,7 +8,7 @@ on what's installed on the host machine.
 from __future__ import annotations
 
 from capture.base import CaptureBackend, CaptureParams, CaptureSession
-from capture.ros_capture import ros_available
+from capture.ros_capture import go_home, ros_available
 
 
 def get_backend(prefer: str = "auto") -> CaptureBackend:
@@ -43,5 +43,6 @@ __all__ = [
     "CaptureParams",
     "CaptureSession",
     "get_backend",
+    "go_home",
     "ros_available",
 ]

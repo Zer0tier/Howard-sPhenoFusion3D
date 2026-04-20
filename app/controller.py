@@ -4,7 +4,7 @@ from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 from file_io.loader   import load_image_pairs, load_intrinsics, get_default_intrinsics
 from file_io.exporter import save_ply, save_metrics_csv
 from app.worker       import ProcessingWorker
-from app.capture_worker import CaptureWorker
+from app.capture_worker import CaptureWorker, HomeWorker
 from app.quality_worker import QualityWorker
 from capture          import CaptureParams
 from processing.quality import QualityParams, QualityThresholds
@@ -28,6 +28,10 @@ class Controller(QObject):
     capture_complete = pyqtSignal(str, int)
     capture_error    = pyqtSignal(str)
 
+    # Gantry home signals
+    home_complete = pyqtSignal()
+    home_error    = pyqtSignal(str)
+
     # Quality pipeline signals
     quality_progress = pyqtSignal(int, int)
     quality_ready    = pyqtSignal(object)
@@ -37,6 +41,7 @@ class Controller(QObject):
         super().__init__(parent)
         self.worker          = None
         self.capture_worker  = None
+        self.home_worker     = None
         self.quality_worker  = None
         self.viewer          = PointCloudViewer()
         self.final_pcd       = None
@@ -184,6 +189,28 @@ class Controller(QObject):
     def _on_capture_error(self, msg):
         self.status_changed.emit(f'Capture error: {msg}')
         self.capture_error.emit(msg)
+
+    # ---------------------------------------------------------------- home
+    @pyqtSlot()
+    def on_home_clicked(self):
+        """Drive the gantry back to the start position (ROS-only feature)."""
+        if self.home_worker is not None and self.home_worker.isRunning():
+            return
+        self.status_changed.emit('Homing gantry...')
+        self.home_worker = HomeWorker()
+        self.home_worker.finished.connect(self._on_home_finished)
+        self.home_worker.error.connect(self._on_home_error)
+        self.home_worker.start()
+
+    @pyqtSlot()
+    def _on_home_finished(self):
+        self.status_changed.emit('Gantry returned to start position.')
+        self.home_complete.emit()
+
+    @pyqtSlot(str)
+    def _on_home_error(self, msg):
+        self.status_changed.emit(f'Home error: {msg}')
+        self.home_error.emit(msg)
 
     # ---------------------------------------------------------------- quality
     def _build_quality_params(self, rgb_dir: str) -> QualityParams:

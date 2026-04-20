@@ -40,6 +40,86 @@ def ros_available() -> bool:
     return importlib.util.find_spec("rospy") is not None
 
 
+def go_home(target_position_m: float = 0.005,
+            velocity_mps: float = 0.2,
+            timeout_s: float = 60.0) -> None:
+    """
+    Drive the gantry back to its start position.
+
+    Publishes a GotoActionGoal on /go_to_position_server/goal (same mechanism
+    used in stakeholder_reference/rospy_thread_fin_1.py) and then blocks until
+    /joint_states reports the gantry is within 5 mm of the target, or timeout
+    elapses.
+
+    Raises RuntimeError if rospy or position_controller_ros is unavailable.
+    """
+    if not ros_available():
+        raise RuntimeError(
+            "rospy is not importable on this machine. 'Home' is only "
+            "available on the lab Linux machine with ROS sourced."
+        )
+
+    import rospy
+    from std_msgs.msg import Header
+    from actionlib_msgs.msg import GoalID
+    from sensor_msgs.msg import JointState
+    try:
+        from position_controller_ros.msg import GotoActionGoal
+    except ImportError as e:
+        raise RuntimeError(
+            "position_controller_ros package not found on the ROS path. "
+            "Source the gantry workspace before launching PhenoFusion3D."
+        ) from e
+
+    try:
+        rospy.init_node("phenofusion_capture", anonymous=True, disable_signals=True)
+    except rospy.exceptions.ROSException:
+        pass
+
+    # Watch /joint_states so we can detect arrival.
+    current = {"pos": None}
+
+    def _cb(msg):
+        if msg.position:
+            current["pos"] = msg.position[0]
+
+    sub = rospy.Subscriber("/joint_states", JointState, _cb)
+    pub = rospy.Publisher(
+        "/go_to_position_server/goal", GotoActionGoal, queue_size=10,
+    )
+
+    # Give publisher/subscriber a moment to register before publishing.
+    t0 = rospy.Time.now()
+    while (rospy.Time.now() - t0).to_sec() < 1.0 and pub.get_num_connections() == 0:
+        rospy.sleep(0.05)
+
+    try:
+        msg = GotoActionGoal()
+        msg.header = Header()
+        msg.goal_id = GoalID()
+        msg.goal.position = float(target_position_m)
+        msg.goal.velocity = float(velocity_mps)
+        pub.publish(msg)
+
+        # Wait for arrival (within 5 mm) or timeout.
+        arrival_tol = 0.005
+        t_start = rospy.Time.now()
+        rate = rospy.Rate(10)
+        while not rospy.is_shutdown():
+            elapsed = (rospy.Time.now() - t_start).to_sec()
+            if elapsed >= timeout_s:
+                raise RuntimeError(
+                    f"Gantry did not reach home within {timeout_s:.0f}s "
+                    f"(last position={current['pos']})."
+                )
+            if current["pos"] is not None and \
+                    abs(current["pos"] - target_position_m) <= arrival_tol:
+                return
+            rate.sleep()
+    finally:
+        sub.unregister()
+
+
 class RosCapture(CaptureBackend):
     name = "ros"
 

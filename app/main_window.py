@@ -139,9 +139,12 @@ class MainWindow(QMainWindow):
         # Capture panel -> controller -> capture panel
         self.capture_panel.capture_requested.connect(self.controller.on_capture_clicked)
         self.capture_panel.capture_stop_requested.connect(self.controller.on_capture_stop)
+        self.capture_panel.home_requested.connect(self._on_home_requested)
         self.controller.capture_progress.connect(self.capture_panel.on_progress)
         self.controller.capture_complete.connect(self._on_capture_complete)
         self.controller.capture_error.connect(self.capture_panel.on_error)
+        self.controller.home_complete.connect(self.capture_panel.on_home_finished)
+        self.controller.home_error.connect(self.capture_panel.on_home_error)
 
         # Quality panel -> controller -> quality panel
         self.quality_panel.quick_requested.connect(self._on_quick_check_requested)
@@ -173,6 +176,10 @@ class MainWindow(QMainWindow):
         self.capture_panel.on_finished(out_dir, n_frames)
         # Tell the controller about these paths so Quality Check can use them too
         self.controller.on_quality_paths(rgb_dir, depth_dir, intr, 1)
+
+    def _on_home_requested(self):
+        self.capture_panel.set_home_running(True)
+        self.controller.on_home_clicked()
 
     def _on_quick_check_requested(self):
         # Push current paths into controller before triggering the worker

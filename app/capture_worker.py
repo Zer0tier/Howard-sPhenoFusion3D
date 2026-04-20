@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from PyQt5.QtCore import QThread, pyqtSignal
 
-from capture import CaptureParams, get_backend
+from capture import CaptureParams, get_backend, go_home
 
 
 class CaptureWorker(QThread):
@@ -42,3 +42,26 @@ class CaptureWorker(QThread):
     def stop(self):
         if self._backend is not None:
             self._backend.stop()
+
+
+class HomeWorker(QThread):
+    """Drive the gantry back to its start position off the UI thread."""
+
+    finished = pyqtSignal()
+    error    = pyqtSignal(str)
+
+    def __init__(self, target_position_m: float = 0.005,
+                 velocity_mps: float = 0.2):
+        super().__init__()
+        self.target_position_m = target_position_m
+        self.velocity_mps      = velocity_mps
+
+    def run(self):
+        try:
+            go_home(
+                target_position_m=self.target_position_m,
+                velocity_mps=self.velocity_mps,
+            )
+            self.finished.emit()
+        except Exception as e:
+            self.error.emit(str(e))

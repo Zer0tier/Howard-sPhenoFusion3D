@@ -22,6 +22,7 @@ class CapturePanel(QWidget):
     # backend_pref, out_root, velocity_mps, end_position_m, fps, duration_s
     capture_requested      = pyqtSignal(str, str, float, float, int, float)
     capture_stop_requested = pyqtSignal()
+    home_requested         = pyqtSignal()
 
     def __init__(self):
         super().__init__()
@@ -115,8 +116,26 @@ class CapturePanel(QWidget):
             'QPushButton:disabled { background:#94a3b8; }'
         )
         self.stop_btn.clicked.connect(self.capture_stop_requested.emit)
+
+        self.home_btn = QPushButton('Home')
+        self.home_btn.setStyleSheet(
+            'QPushButton { background:#0ea5e9; color:white; border-radius:4px; padding:6px; font-weight:bold; }'
+            'QPushButton:disabled { background:#94a3b8; }'
+        )
+        self.home_btn.setToolTip(
+            'Drive the gantry back to its start position '
+            '(requires ROS + gantry backend).'
+        )
+        self.home_btn.clicked.connect(self._on_home)
+        if not ros_available():
+            self.home_btn.setEnabled(False)
+            self.home_btn.setToolTip(
+                'ROS not available on this machine -- Home is disabled.'
+            )
+
         btn_row.addWidget(self.capture_btn)
         btn_row.addWidget(self.stop_btn)
+        btn_row.addWidget(self.home_btn)
         layout.addLayout(btn_row)
 
         # Progress + status
@@ -163,6 +182,17 @@ class CapturePanel(QWidget):
         self.capture_btn.setEnabled(not running)
         self.stop_btn.setEnabled(running)
         self.backend_combo.setEnabled(not running)
+        # Disable Home while capturing; re-enable afterwards only if ROS works.
+        self.home_btn.setEnabled(not running and ros_available())
+
+    def set_home_running(self, running: bool):
+        """Lock capture controls while the gantry is homing."""
+        self.home_btn.setEnabled(not running and ros_available())
+        self.capture_btn.setEnabled(not running)
+
+    def _on_home(self):
+        self.status_lbl.setText('Homing gantry...')
+        self.home_requested.emit()
 
     def on_progress(self, idx: int, total: int):
         if total > 0:
@@ -187,6 +217,14 @@ class CapturePanel(QWidget):
         self.progress.setRange(0, 100)
         self.progress.setValue(0)
         self.status_lbl.setText(f'ERROR: {msg}')
+
+    def on_home_finished(self):
+        self.set_home_running(False)
+        self.status_lbl.setText('Gantry homed.')
+
+    def on_home_error(self, msg: str):
+        self.set_home_running(False)
+        self.status_lbl.setText(f'Home ERROR: {msg}')
 
     def _open_last(self):
         if not self._last_out:
