@@ -14,10 +14,6 @@ def load_image_pairs(rgb_dir, depth_dir, step=1):
       - ICL-NUIM format:    0.png, 1.png, 2.png ...
     Returns a list of (rgb_path, depth_path) tuples sampled at 'step' interval.
     """
-    step = int(step)
-    if step < 1:
-        raise ValueError(f'step must be >= 1, got {step}')
-
     # Try prefixed format first (stakeholder convention)
     rgb_files   = natsorted(glob.glob(os.path.join(rgb_dir,   'rgb_*.png')))
     depth_files = natsorted(glob.glob(os.path.join(depth_dir, 'depth_*.png')))
@@ -38,28 +34,7 @@ def load_image_pairs(rgb_dir, depth_dir, step=1):
             f'{len(rgb_files)} RGB vs {len(depth_files)} depth'
         )
 
-    pairs = []
-    # For prefixed formats, pair by suffix token to avoid misalignment
-    if rgb_files and depth_files and os.path.basename(rgb_files[0]).startswith('rgb_'):
-        depth_map = {
-            os.path.basename(path).replace('depth_', '', 1): path
-            for path in depth_files
-        }
-        for rgb_path in rgb_files:
-            key = os.path.basename(rgb_path).replace('rgb_', '', 1)
-            depth_path = depth_map.get(key)
-            if depth_path:
-                pairs.append((rgb_path, depth_path))
-    else:
-        pairs = list(zip(rgb_files, depth_files))
-
-    if not pairs:
-        raise ValueError('No matched RGB-depth pairs found after filename pairing.')
-    if len(pairs) != len(rgb_files):
-        raise ValueError(
-            f'Found {len(rgb_files)} RGB files but only {len(pairs)} matched depth files by filename.'
-        )
-
+    pairs = list(zip(rgb_files, depth_files))
     sampled = pairs[::step]
     print(f'[loader] Found {len(pairs)} pairs, using {len(sampled)} at step={step}')
     return sampled

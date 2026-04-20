@@ -9,25 +9,79 @@ Python tools for **RGB-D–based 3D reconstruction**: turn paired colour and dep
 
 ## Getting started
 
-From the repository root:
+For lab and dev installs (preferred), use the bundled installers — see [install/README.md](install/README.md):
+
+- **Lab Linux + ROS:** `./install/install_linux.sh`
+- **Windows (camera-only):** `.\install\install_windows.ps1`
+
+For a manual install (any OS), from the repository root:
 
 ```bash
 python -m venv venv
+# Windows: .\venv\Scripts\Activate.ps1
+# Linux:    source venv/bin/activate
+pip install -e ".[windows]"   # or ".[ros]" on the lab Linux machine
 ```
 
-Activate the virtual environment:
-
-- **Windows (PowerShell):** `.\venv\Scripts\Activate.ps1`
-- **Windows (cmd):** `.\venv\Scripts\activate.bat`
-- **macOS / Linux:** `source venv/bin/activate`
-
-Install dependencies:
+Launch the app:
 
 ```bash
-pip install -r requirements.txt
+python main.py
 ```
 
 Do not commit large datasets or generated point clouds; see `.gitignore` (`data/`, `*.ply`, `*.pcd`, etc.).
+
+## Capture (in-app)
+
+The **Data Capture** panel drives an RGB-D capture without leaving the app.
+
+- **Backend = Auto** picks ROS+gantry on the lab machine and RealSense-only on Windows.
+- **ROS + Gantry** (lab Linux) wraps `stakeholder_reference/rospy_thread_fin_1.py` with the same `Twist`-based velocity command, the same `align(rs.stream.color)` pipeline and the same intrinsics save logic. UI-tunable parameters: velocity (m/s), end position (m), FPS.
+- **RealSense Only** (Windows / dev) captures from the camera directly for `Duration (s)` seconds. Useful for sanity tests.
+
+Output layout (consumed directly by the loader):
+
+```
+data/captures/<YYYYMMDDhhmmss>/
+    rgb/0.png, 1.png, ...
+    depth/0.png, 1.png, ...
+    kdc_intrinsics.txt        # color stream
+    kd_intrinsics.txt         # depth stream
+    session.json              # backend, velocity, frame_index -> gantry position
+```
+
+After a successful capture the **Data Loading** fields are auto-populated so you can immediately run the quality check or reconstruction.
+
+## Quality Check (in-app)
+
+The **Data Quality** panel runs depth + ICP diagnostics on the loaded sequence:
+
+- **Quick Check** -- ~15 random consecutive pairs, ~10–30 s.
+- **Full Report** -- every consecutive pair; writes `quality_report.csv` and `quality_report.txt` next to the dataset.
+
+Per-pair metrics: depth validity %, median depth (m), point count, ICP fitness, ICP inlier RMSE (m), per-pair rotation magnitude (deg).
+
+Verdict bands (default thresholds):
+
+| Metric | PASS | WARN | FAIL |
+|---|---|---|---|
+| ICP fitness (mean) | ≥ 0.50 | 0.30–0.50 | < 0.30 |
+| ICP inlier RMSE (mean) | ≤ 0.005 m | 0.005–0.015 m | > 0.015 m |
+| Depth validity per frame | ≥ 30 % | 10–30 % | < 10 % |
+| Per-frame rotation (gantry) | < 1° | 1–5° | > 5° |
+
+The same `min_fitness` / `max_rmse` thresholds are now enforced inside the reconstructor: frames whose ICP result misses either bar are marked **REJECTED** and don't pollute the merged cloud.
+
+## Organizing `data/main` (ICL-style layout)
+
+Team RGB-D drops often use **`rgb_*.png`** and **`depth_*.png`** in a single folder per capture (e.g. `data/main/<sequence>/`). To mirror **`data/icl_nuim/`** (`rgb/0.png`, `depth/0.png`, and **`kdc_intrinsics.txt`** at the sequence root), activate the venv (see above) and run from the repo root:
+
+```bash
+python scripts/reorganize_data_main.py --dry-run
+python scripts/reorganize_data_main.py
+```
+
+Use **`--move`** instead of copy if you want to remove the flat `rgb_*` / `depth_*` files after moving them into `rgb/` and `depth/`. For one sequence, separate RGB/depth folders, or **`camera_N`** layouts, see **`python scripts/reorganize_to_icl_layout.py --help`**.
 
 ## Project layout
 
@@ -42,7 +96,9 @@ Do not commit large datasets or generated point clouds; see `.gitignore` (`data/
 | `tests/` | Unit tests (`test_loader`, `test_rgbd`, `test_icp`) |
 | `tests/smoke_reconstructor.py` | End-to-end smoke script (synthetic frames → merged cloud) |
 | `stakeholder_reference/` | Reference scripts from stakeholders (e.g. `3D_recons.py`); may expect extra deps such as PyTorch |
-| `data/` | Local RGB-D sequences (gitignored; keep datasets here, e.g. `data/icl_nuim/`) |
+| `data/` | Local RGB-D sequences (gitignored; keep datasets here, e.g. `data/icl_nuim/`, `data/main/`) |
+| `scripts/reorganize_to_icl_layout.py` | CLI: convert stakeholder flat `rgb_*`/`depth_*` layout → `rgb/N.png`, `depth/N.png` + `kdc_intrinsics.txt` |
+| `scripts/reorganize_data_main.py` | Wrapper: batch that for each subfolder of `data/main` |
 | `app/`, `main.py`, `visualiser/` | Reserved for a future PyQt-style UI; entry points may still be empty stubs |
 
 ## Data conventions
@@ -87,71 +143,6 @@ python tests/smoke_reconstructor.py
 ```
 
 Typical real-data usage: **`pairs = load_image_pairs(rgb_dir, depth_dir, step=1)`**, **`load_intrinsics(path)`** or defaults, then **`Reconstructor(pairs=..., K=..., dist=..., depth_scale=..., save_path=...).run()`**. You can slice **`pairs`** (e.g. Python list slicing) to run on a subset of frames.
-
-## Experimental intrinsics recovery tools
-
-The repo now includes a lightweight experiment track for intrinsic uncertainty studies (baseline runs, focal-length sweep, and candidate comparison).
-
-### 1) Baseline runs (T-01)
-
-Script: `experiments/baseline/run_baseline.py`
-
-Runs one or more focal-length baselines and writes:
-- `baseline/metrics.json`
-- `baseline/baseline_fx*.ply`
-
-Example:
-
-```bash
-python experiments/baseline/run_baseline.py \
-  --rgb-dir "data/main/test_plant_rs13_1/rgb" \
-  --depth-dir "data/main/test_plant_rs13_1/depth" \
-  --output-dir "baseline" \
-  --fx-values 1108 900
-```
-
-### 2) Focal-length sweep (T-02 helper)
-
-Script: `experiments/calibration/sweep_intrinsics.py`
-
-Sweeps candidate `fx` values, reconstructs a small frame subset per candidate, and records:
-- `experiments/calibration/outputs/intrinsics_sweep.csv`
-- `experiments/calibration/outputs/candidate_intrinsics.json`
-
-Example:
-
-```bash
-python experiments/calibration/sweep_intrinsics.py \
-  --rgb-dir "data/main/test_plant_rs13_1/rgb" \
-  --depth-dir "data/main/test_plant_rs13_1/depth" \
-  --frames 5
-```
-
-Optional:
-- `--save-best-ply` to run/save a full reconstruction for the selected winner.
-- `--fx-values "700,800,900,1000,1050,1108,1200"` to override defaults.
-
-### 3) Candidate intrinsics comparison (T-08)
-
-Script: `evaluation/compare_intrinsics.py`
-
-Compares multiple intrinsics JSON files on a fixed frame slice and writes:
-- `evaluation/comparison_results.csv`
-- `evaluation/comparison_results.json`
-- `evaluation/ply_outputs/*.ply`
-
-Example:
-
-```bash
-python evaluation/compare_intrinsics.py \
-  --rgb-dir "data/main/test_plant_rs13_1/rgb" \
-  --depth-dir "data/main/test_plant_rs13_1/depth" \
-  --frames 30 \
-  "data/main/test_plant_rs13_1/depth/kdc_intrinsics.txt" \
-  "data/main/test_plant_rs13_1/depth/kd_intrinsics.txt"
-```
-
-The script also prints a markdown-ready summary table to stdout for easy report copy/paste.
 
 ## Dependencies (summary)
 

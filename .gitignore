@@ -1,7 +1,5 @@
 # Virtual environment
 venv/
-.venv/
-.venv*/
 
 # Python cache
 __pycache__/
@@ -35,3 +33,4 @@ Thumbs.db
 .env
 
 notes.txt
+.cursor
