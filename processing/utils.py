@@ -1,0 +1,91 @@
+import numpy as np
+import open3d as o3d
+
+
+def clean_pcd(pcd, nb_neighbors=30, std_ratio=1.5, voxel_size=0.005):
+    """
+    Downsample and remove statistical outliers from a point cloud.
+    Used for the final merged output only -- NOT before ICP registration.
+    Returns cleaned PointCloud. Handles empty input gracefully.
+    """
+    if pcd is None or pcd.is_empty():
+        print('[utils] WARNING: clean_pcd received empty point cloud, skipping.')
+        return pcd
+
+    # Voxel downsample first - reduces density and speeds up display/export
+    pcd = pcd.voxel_down_sample(voxel_size)
+
+    # Remove statistical outliers
+    pcd, _ = pcd.remove_statistical_outlier(
+        nb_neighbors=nb_neighbors,
+        std_ratio=std_ratio
+    )
+    return pcd
+
+
+def clean_pcd_for_registration(pcd, nb_neighbors=10, std_ratio=0.4):
+    """
+    Outlier removal WITHOUT voxel downsampling -- for use before ICP.
+
+    Voxel downsampling before ICP kills sub-voxel displacement signal.
+    The stakeholder's clean_pcd only does outlier removal (no downsample),
+    which is why their pipeline worked on this data.
+
+    nb_neighbors / std_ratio are intentionally more permissive than the
+    output clean_pcd so we keep as many points as possible for ICP.
+    """
+    if pcd is None or pcd.is_empty():
+        return pcd
+
+    # Statistical outlier removal (matches stakeholder notebook params)
+    pcd, _ = pcd.remove_statistical_outlier(
+        nb_neighbors=nb_neighbors,
+        std_ratio=std_ratio,
+    )
+    # Radius outlier removal catches isolated flying pixels the stat filter misses
+    pcd, _ = pcd.remove_radius_outlier(nb_points=20, radius=0.05)
+    return pcd
+
+
+def estimate_normals(pcd, radius=0.01, max_nn=30):
+    """
+    Estimate and orient normals on a point cloud.
+    Required for point-to-plane ICP fallback.
+    """
+    if pcd is None or pcd.is_empty():
+        return pcd
+    pcd.estimate_normals(
+        search_param=o3d.geometry.KDTreeSearchParamHybrid(
+            radius=radius, max_nn=max_nn
+        )
+    )
+    pcd.orient_normals_consistent_tangent_plane(k=10)
+    return pcd
+
+
+def check_gpu():
+    """
+    Returns True if CUDA + CuPy are available.
+    Used to switch between numpy and cupy in the pipeline.
+    """
+    try:
+        import torch
+        if torch.cuda.is_available():
+            import cupy
+            print('[utils] GPU detected: using CuPy')
+            return True
+    except ImportError:
+        pass
+    print('[utils] No GPU/CuPy available: using NumPy')
+    return False
+
+
+def numpy_or_cupy():
+    """
+    Returns cupy if GPU available, numpy otherwise.
+    Drop-in replacement for array operations.
+    """
+    if check_gpu():
+        import cupy as cp
+        return cp
+    return np
