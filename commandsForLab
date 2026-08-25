@@ -1,0 +1,73 @@
+sudo apt purge -y 'librealsense2*'
+sudo apt autoremove -y
+
+dpkg -l | grep librealsense
+
+sudo apt update
+
+sudo apt install -y \
+git \
+cmake \
+build-essential \
+libssl-dev \
+libusb-1.0-0-dev \
+libudev-dev \
+pkg-config \
+libgtk-3-dev \
+libglfw3-dev
+
+cd ~
+
+rm -rf ~/librealsense-2.54.2
+
+git clone --branch v2.54.2 --depth 1 \
+https://github.com/IntelRealSense/librealsense.git \
+librealsense-2.54.2
+
+cd ~/librealsense-2.54.2
+
+git describe --tags
+
+sudo ./scripts/setup_udev_rules.sh
+
+sudo udevadm control --reload-rules
+sudo udevadm trigger
+
+cd ~/librealsense-2.54.2
+
+rm -rf build
+mkdir build
+cd build
+
+cmake .. \
+-DCMAKE_BUILD_TYPE=Release \
+-DFORCE_RSUSB_BACKEND=ON \
+-DBUILD_EXAMPLES=ON \
+-DBUILD_GRAPHICAL_EXAMPLES=ON \
+-DBUILD_PYTHON_BINDINGS=OFF
+
+make -j$(nproc)
+
+sudo make install
+
+sudo ldconfig
+
+which rs-enumerate-devices
+
+rs-enumerate-devices --version
+
+rs-enumerate-devices
+
+realsense-viewer
+
+cd ~/3D_scan_csiro
+
+source .venv/bin/activate
+
+python -m pip install --upgrade pip
+
+pip uninstall -y pyrealsense2
+
+pip install pyrealsense2==2.54.2.5684
+
+python -c "import pyrealsense2 as rs; print(rs.__version__)"
